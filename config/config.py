@@ -1,5 +1,5 @@
 from classes.DBConn import DBConn
-from condition.config_condition import (
+from condition.config_cond import (
     AWS_AURORA_CONFIG
 )
 

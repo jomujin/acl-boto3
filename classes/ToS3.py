@@ -1,6 +1,10 @@
 import os
 import subprocess
-from classes.Log import Log
+from classes.Log import (
+    Log,
+    get_export_csv_log,
+    get_export_ddl_log
+)
 from condition.config_cond import (
     AWS_AURORA_CONFIG
 )
@@ -22,6 +26,7 @@ class ToS3:
         self.dnm = dnm
         self.snm = snm
         self.tnm = tnm
+        self.pnm = None
         self.s3nm = s3nm
         self.s3region = s3region
 
@@ -54,26 +59,42 @@ class ToS3:
         if self.pnm:
             pull_tnm = f'{self.snm}.{self.pnm}'
             export_table_sql_line = f'select * from {pull_tnm}'
-            destination_aws_key_space = f'/{self.dnm}/{self.snm}/{self.tnm}/{self.pnm}.csv'
+            destination_s3_file_path = f'/{self.dnm}/{self.snm}/{self.tnm}/{self.pnm}.csv'
         else:
             pull_tnm = f'{self.snm}.{self.tnm}'
             export_table_sql_line = f'select * from {pull_tnm}'
-            destination_aws_key_space = f'/{self.dnm}/{self.snm}/{self.tnm}/{self.tnm}.csv'
+            destination_s3_file_path = f'/{self.dnm}/{self.snm}/{self.tnm}/{self.tnm}.csv'
         
         export_sql = f"""
         select * from aws_s3.query_export_to_s3(
             '{export_table_sql_line}', 
             aws_commons.create_s3_uri(
             '{self.s3nm}', 
-            '{destination_aws_key_space}', 
-            '{self.s3region}'),
+            '{destination_s3_file_path}', 
+            '{self.s3region}'
+            ),
             options :='format csv, HEADER true'
         )
         """
 
         try:
             self.cur.execute(export_sql)
-            logger.info(f"Success Export {self.dnm}{pull_tnm}.csv to AWS S3 {self.s3nm}{destination_aws_key_space}")
+            res = self.cur.fetchall()
+            rows_uploaded, files_uploaded, bytes_uploaded = res[0]
+            # 출력 파라미터
+            # OUT rows_uploaded bigint: 지정된 쿼리에 대해 Amazon S3에 성공적으로 업로드된 테이블 행 수
+            # OUT files_uploaded bigint: Amazon S3에 업로드된 파일 수(파일은 약 6GB 크기로 생성, 생성된 각 추가 파일 이름에 _partXX가 추가됩니다. XX는 2, 3 등을 나타냄)
+            # OUT bytes_uploaded bigint: Amazon S3에 업로드된 총 바이트 수
+            msg = get_export_csv_log(
+                dnm = self.dnm,
+                pull_tnm = pull_tnm,
+                s3nm = self.s3nm,
+                destination_s3_file_path = destination_s3_file_path,
+                files_uploaded = files_uploaded,
+                rows_uploaded = rows_uploaded,
+                bytes_uploaded = bytes_uploaded,
+            )
+            logger.info(msg)
         except:
             logger.error('Failed Export CSV Table')
             raise ValueError
@@ -83,10 +104,10 @@ class ToS3:
 
         if self.pnm:
             pull_tnm = f'{self.snm}.{self.pnm}'
-            destination_aws_key_space = f's3://{self.s3nm}/{self.dnm}/{self.snm}/{self.tnm}/{self.pnm}_DDL.sql'
+            destination_s3_file_path = f's3://{self.s3nm}/{self.dnm}/{self.snm}/{self.tnm}/{self.pnm}_DDL.sql'
         else:
             pull_tnm = f'{self.snm}.{self.tnm}'
-            destination_aws_key_space = f's3://{self.s3nm}/{self.dnm}/{self.snm}/{self.tnm}/{self.tnm}_DDL.sql'
+            destination_s3_file_path = f's3://{self.s3nm}/{self.dnm}/{self.snm}/{self.tnm}/{self.tnm}_DDL.sql'
 
         dump_success = 1
         sql = f"""pg_dump \
@@ -97,20 +118,24 @@ class ToS3:
         -w \
         -t {pull_tnm} \
         --schema-only | \
-        aws s3 cp - {destination_aws_key_space}"""
+        aws s3 cp - {destination_s3_file_path}"""
 
         try:
-            proc = subprocess.Popen(
+            subprocess.run(
                 sql,
                 shell=True,
                 env={**os.environ, "PGPASSWORD": f"{AWS_AURORA_CONFIG.get('PASSWORD')}"}
             )
-            proc.wait()
         except:
             dump_success = 0
 
         if dump_success:
-            logger.info(f"Success Export {self.dnm}{pull_tnm} DDL to AWS S3 {destination_aws_key_space}")
+            msg = get_export_ddl_log(
+                dnm = self.dnm,
+                pull_tnm = pull_tnm,
+                destination_s3_file_path = destination_s3_file_path
+            )
+            logger.info(msg)
         else:
             logger.error('Failed Export DDL Table')
             raise ValueError

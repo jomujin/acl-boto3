@@ -43,7 +43,7 @@ def get_export_csv_log(
     rows_uploaded: int,
     bytes_uploaded: int
 ):
-    return (f"""Success Export {dnm}{pull_tnm}.csv to AWS S3 {s3nm}{destination_s3_file_path} |
+    return (f"""Successful Export {dnm}{pull_tnm}.csv to AWS S3 {s3nm}{destination_s3_file_path} |
 files_uploaded: {files_uploaded} File(s) | rows_uploaded: {rows_uploaded} Row(s) | bytes_uploaded: {bytes_uploaded/(10**6)} Mb""")
 
 def get_export_ddl_log(
@@ -51,4 +51,4 @@ def get_export_ddl_log(
     pull_tnm: str,
     destination_s3_file_path: str
 ):
-    return (f"Success Export {dnm}{pull_tnm} DDL to AWS S3 {destination_s3_file_path}")
+    return (f"Successful Export {dnm}{pull_tnm} DDL to AWS S3 {destination_s3_file_path}")

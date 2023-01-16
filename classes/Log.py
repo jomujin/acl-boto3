@@ -34,21 +34,32 @@ class Log:
             self.log.addHandler(streamHandler)
             return self.log
 
+
 def get_export_csv_log(
-    dnm: str,
-    pull_tnm: str,
-    s3nm: str,
-    destination_s3_file_path: str,
+    database_name: str,
+    pull_table_name: str,
+    dest_s3_file_path: str,
     files_uploaded: int,
     rows_uploaded: int,
     bytes_uploaded: int
-):
-    return (f"""Successful Export {dnm}{pull_tnm}.csv to AWS S3 {s3nm}{destination_s3_file_path} |
+) -> str:
+    return (f"""Successful Export {database_name}.{pull_table_name}.csv to AWS S3 {dest_s3_file_path} |
 files_uploaded: {files_uploaded} File(s) | rows_uploaded: {rows_uploaded} Row(s) | bytes_uploaded: {bytes_uploaded/(10**6)} Mb""")
 
+
 def get_export_ddl_log(
-    dnm: str,
-    pull_tnm: str,
-    destination_s3_file_path: str
-):
-    return (f"Successful Export {dnm}{pull_tnm} DDL to AWS S3 {destination_s3_file_path}")
+    database_name: str,
+    pull_table_name: str,
+    dest_s3_file_path: str
+) -> str:
+    return (f"Successful Export {database_name}.{pull_table_name} DDL to AWS S3 {dest_s3_file_path}")
+
+
+def get_import_table_log(
+    database_name: str,
+    pull_table_name: str,
+    source_s3_file_path: str,
+    result_msg: str
+) -> str:
+    return (f"""Successful Import {database_name}.{pull_table_name} DDL from AWS S3 {source_s3_file_path} |
+result_msg : {result_msg}""")

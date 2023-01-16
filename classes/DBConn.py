@@ -7,7 +7,7 @@ class DBConn:
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance"):         # Foo 클래스 객체에 _instance 속성이 없다면
-            # print("DBConn __new__ is called\n")
+            print("DBConn __new__ is called")
             cls._instance = super().__new__(cls)  # Foo 클래스의 객체를 생성하고 Foo._instance로 바인딩
         return cls._instance                      # Foo._instance를 리턴
 
@@ -24,7 +24,7 @@ class DBConn:
         self.user = user
         self.password = password
         self.database = database
-        # print("DBConn __init__ is called\n")
+        print("DBConn __init__ is called")
 
     def getPsypgConn(self):
         try:
@@ -35,6 +35,7 @@ class DBConn:
                 database=self.database,
                 port=self.port,
             )
+            conn.autocommit = True  
             print("데이터베이스 접속 성공")
         except psycopg2.Error:
             print("데이터베이스 접속 실패. db정보를 확인하세요")

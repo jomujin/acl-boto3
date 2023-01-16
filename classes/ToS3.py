@@ -326,32 +326,34 @@ class ToS3:
             
             logger = Log("EXPORT_CSV_LOG").stream_handler("INFO")
             
-            for multi_part_path in multi_part_list:
-                sql = f"""
-                SELECT aws_s3.table_import_from_s3(
-                    '{import_schema_name}.{import_table_name}',
-                    '', 
-                    '(format {format}, HEADER {header})',
-                    aws_commons.create_s3_uri(
-                        '{self.aws_s3_name}',
-                        '/{multi_part_path}',
-                        '{self.aws_s3_region}'
-                    )
-                )
-                """
-
-                try:
-                    self.cur.execute(sql)
-                    res = self.cur.fetchall()
-                    self.con.commit()
-                    if res:
-                        msg = get_import_table_log(
-                            database_name = import_database_name,
-                            pull_table_name = f'{import_schema_name}.{import_table_name}',
-                            source_s3_file_path = f's3://{self.aws_s3_name}/{multi_part_path}',
-                            result_msg = res[0]
+            for idx, multi_part_path in enumerate(multi_part_list):
+                if idx < 3:
+                    sql = f"""
+                    SELECT aws_s3.table_import_from_s3(
+                        '{import_schema_name}.{import_table_name}',
+                        '', 
+                        '(format {format}, HEADER {header})',
+                        aws_commons.create_s3_uri(
+                            '{self.aws_s3_name}',
+                            '/{multi_part_path}',
+                            '{self.aws_s3_region}'
                         )
-                        logger.info(msg)
-                except:
-                    logger.error('Failed Import Table')
-                    raise ValueError
+                    )
+                    """
+
+                    try:
+                        self.cur.execute(sql)
+                        res = self.cur.fetchall()
+                        if res:
+                            msg = get_import_table_log(
+                                database_name = import_database_name,
+                                pull_table_name = f'{import_schema_name}.{import_table_name}',
+                                source_s3_file_path = f's3://{self.aws_s3_name}/{multi_part_path}',
+                                result_msg = res[0][0]
+                            )
+                            logger.info(msg)
+                    except:
+                        logger.error('Failed Import Table')
+                        raise ValueError
+                else:
+                    break

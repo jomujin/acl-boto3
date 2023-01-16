@@ -4,26 +4,27 @@ import sqlalchemy
 
 
 class DBConn:
+
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance"):         # Foo 클래스 객체에 _instance 속성이 없다면
-            print("DBConn __new__ is called\n")
+            # print("DBConn __new__ is called\n")
             cls._instance = super().__new__(cls)  # Foo 클래스의 객체를 생성하고 Foo._instance로 바인딩
         return cls._instance                      # Foo._instance를 리턴
 
     def __init__(
         self,
-        host,
-        port,
-        user,
-        password,
-        database,
+        host: str,
+        port: str,
+        user: str,
+        password: str,
+        database: str
     ):
         self.host = host
         self.port = port
         self.user = user
         self.password = password
         self.database = database
-        print("DBConn __init__ is called\n")
+        # print("DBConn __init__ is called\n")
 
     def getPsypgConn(self):
         try:

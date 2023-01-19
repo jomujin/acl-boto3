@@ -17,7 +17,7 @@ from classes.Client import (
 )
 
 
-class ToS3:
+class AWSFileTransfer:
 
     def __init__(
         self, 
@@ -116,9 +116,9 @@ class ToS3:
 
     def export_csv_to_s3(
         self, 
-        database_name: str, # db name
-        schema_name: str, # schema name
-        table_name: str, # table name
+        database_name: str,
+        schema_name: str,
+        table_name: str,
         if_exist: str = "replace"
     ):
         """
@@ -139,7 +139,10 @@ class ToS3:
 
         try:
             logger = Log("EXPORT_CSV_LOG").stream_handler("INFO")
-            table_name, partition_name = self.get_pnm(self, schema_name, table_name)
+            table_name, partition_name = self.get_pnm(
+                schema_name,
+                table_name
+            )
 
             if partition_name:
                 pull_table_name = f'{schema_name}.{partition_name}'
@@ -192,9 +195,9 @@ class ToS3:
 
     def dump_ddl_to_s3(
         self,
-        database_name: str, # db name
-        schema_name: str, # schema name
-        table_name: str, # table name
+        database_name: str,
+        schema_name: str,
+        table_name: str,
         if_exist: str = "replace"
     ):
         """
@@ -216,7 +219,6 @@ class ToS3:
         try:
             logger = Log("EXPORT_DDL_LOG").stream_handler("INFO")
             table_name, partition_name = self.get_pnm(
-                self, 
                 schema_name, 
                 table_name
             )
@@ -264,6 +266,35 @@ class ToS3:
         except:
             logger.error('Failed Export DDL Table')
             raise Exception
+
+
+    def create_table_by_ddl(
+        self,
+        file_path: str,
+        if_exist: str = 'replace'
+    ):
+        restore_success = 1
+        is_exist = self.check_exist_file(file_path)
+        sql = f"""
+        wget -O - 'https://{self.aws_s3_name}.s3.{self.aws_s3_region}.amazonaws.com/{file_path}' | 
+        psql \
+        -h {self.host} \
+        -p {self.port} \
+        -d {self.database} \
+        -U {self.user} \
+        -w \
+        -Fc
+        """
+        try:
+            subprocess.run(
+                sql,
+                shell=True,
+                env={**os.environ, "PGPASSWORD": f"{self.password}"}
+            )
+        except:
+            restore_success = 0
+            raise subprocess.SubprocessError
+
 
 
     def get_all_multi_part_list(

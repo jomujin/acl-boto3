@@ -1,8 +1,4 @@
 import boto3
-import botocore
-from condition.config_cond import (
-    AWS_CONFIG
-)
 
 
 class Boto3Client:

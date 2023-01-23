@@ -7,7 +7,8 @@ from classes.Log import (
     Log,
     get_export_csv_log,
     get_export_ddl_log,
-    get_import_table_log
+    get_import_table_log,
+    get_import_ddl_log
 )
 from classes.DBConn import (
     DBConn
@@ -278,42 +279,54 @@ class AWSFileTransfer:
         expires_in : Time in seconds for the presigned URL to remain valid
             * source : https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html
         """
-
-        # Generate the presigned URL
-        client = self.session.s3_client
-        presigned_url = client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': self.aws_s3_name, 'Key': file_path},
-            ExpiresIn=expires_in
-        )
-
-        restore_success = 1
-        file_name = f"{file_path.split('/')[-1]}"
-        import_ddl_command = f"""
-        wget -O {file_name} '{presigned_url}' | 
-        psql \
-        -h {self.host} \
-        -p {self.port} \
-        -d {self.database} \
-        -U {self.user} \
-        -w \
-        -f {file_name}
-        """
-        delte_file_command = f"rm {file_name}"
+        
         try:
-            subprocess.run(
-                import_ddl_command,
-                shell=True,
-                env={**os.environ, "PGPASSWORD": f"{self.password}"}
+            logger = Log("EXPORT_DDL_LOG").stream_handler("INFO")
+
+            # Generate the presigned URL
+            client = self.session.s3_client
+            presigned_url = client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.aws_s3_name, 'Key': file_path},
+                ExpiresIn=expires_in
             )
-            subprocess.run(
-                delte_file_command,
-                shell=True,
-                env={**os.environ}
-            )
+
+            restore_success = 1
+            file_name = f"{file_path.split('/')[-1]}"
+            import_ddl_command = f"""
+            wget -O {file_name} '{presigned_url}' | 
+            psql \
+            -h {self.host} \
+            -p {self.port} \
+            -d {self.database} \
+            -U {self.user} \
+            -w \
+            -f {file_name}
+            """
+            delte_file_command = f"rm {file_name}"
+            try:
+                subprocess.run(
+                    import_ddl_command,
+                    shell=True,
+                    env={**os.environ, "PGPASSWORD": f"{self.password}"}
+                )
+                subprocess.run(
+                    delte_file_command,
+                    shell=True,
+                    env={**os.environ}
+                )
+            except:
+                restore_success = 0
+                raise subprocess.SubprocessError
+
+            if restore_success:
+                msg = get_import_ddl_log(
+                    source_s3_file_path = file_path
+                )
+                logger.info(msg)
         except:
-            restore_success = 0
-            raise subprocess.SubprocessError
+            logger.error('Failed Import DDL Table')
+            raise Exception
 
 
     def get_all_multi_part_list(

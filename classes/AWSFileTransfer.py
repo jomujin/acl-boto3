@@ -268,33 +268,52 @@ class AWSFileTransfer:
             raise Exception
 
 
-    def create_table_by_ddl(
+    def import_ddl_from_s3(
         self,
         file_path: str,
-        if_exist: str = 'replace'
+        expires_in: int = 100
     ):
+        """
+        file_path : The Amazon S3 file name including the path of the file.
+        expires_in : Time in seconds for the presigned URL to remain valid
+            * source : https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html
+        """
+
+        # Generate the presigned URL
+        client = self.session.s3_client
+        presigned_url = client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': self.aws_s3_name, 'Key': file_path},
+            ExpiresIn=expires_in
+        )
+
         restore_success = 1
-        is_exist = self.check_exist_file(file_path)
-        sql = f"""
-        wget -O - 'https://{self.aws_s3_name}.s3.{self.aws_s3_region}.amazonaws.com/{file_path}' | 
+        file_name = f"{file_path.split('/')[-1]}"
+        import_ddl_command = f"""
+        wget -O {file_name} '{presigned_url}' | 
         psql \
         -h {self.host} \
         -p {self.port} \
         -d {self.database} \
         -U {self.user} \
         -w \
-        -Fc
+        -f {file_name}
         """
+        delte_file_command = f"rm {file_name}"
         try:
             subprocess.run(
-                sql,
+                import_ddl_command,
                 shell=True,
                 env={**os.environ, "PGPASSWORD": f"{self.password}"}
+            )
+            subprocess.run(
+                delte_file_command,
+                shell=True,
+                env={**os.environ}
             )
         except:
             restore_success = 0
             raise subprocess.SubprocessError
-
 
 
     def get_all_multi_part_list(

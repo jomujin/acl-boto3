@@ -63,3 +63,9 @@ def get_import_table_log(
 ) -> str:
     return (f"""Successful Import {database_name}.{pull_table_name} from AWS S3 {source_s3_file_path} |
 result_msg : {result_msg}""")
+
+
+def get_import_ddl_log(
+    source_s3_file_path: str
+) -> str:
+    return (f"""Successful Import DDL from AWS S3 {source_s3_file_path}""")

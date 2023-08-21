@@ -1,16 +1,15 @@
+import os
+from dotenv import load_dotenv
 from classes.DBConn import DBConn
-from condition.config_cond import (
-    AWS_AURORA_CONFIG
-)
 
 
-# postgres url variables from environment
-AWS_PG_HOST = AWS_AURORA_CONFIG.get('ENDPOINT', False)
-AWS_PG_PORT = AWS_AURORA_CONFIG.get('PORT', False)
-AWS_PG_DBNAME = AWS_AURORA_CONFIG.get('DBNAME', False)
-AWS_PG_USER = AWS_AURORA_CONFIG.get('USER', False)
-AWS_PG_REGION = AWS_AURORA_CONFIG.get('REGION', False)
-AWS_PG_PASSWORD = AWS_AURORA_CONFIG.get('PASSWORD', False)
+load_dotenv()
+AWS_PG_HOST = os.environ['AWS_AURORA_PSQL_ENDPOINT']
+AWS_PG_PORT = os.environ['AWS_AURORA_PSQL_PORT']
+AWS_PG_DBNAME = os.environ['AWS_AURORA_PSQL_DBNAME']
+AWS_PG_USER = os.environ['AWS_AURORA_PSQL_USER']
+AWS_PG_REGION = os.environ['AWS_AURORA_PSQL_REGION']
+AWS_PG_PASSWORD = os.environ['AWS_AURORA_PSQL_PASSWORD']
 assert AWS_PG_HOST  is not False
 assert AWS_PG_USER is not False
 assert AWS_PG_PORT == '5432'
